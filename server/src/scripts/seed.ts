@@ -13,7 +13,7 @@ const sampleTasks = [
     priority: "high",
     progress: 65,
     assignedTo: "student1",
-    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   },
   {
     title: "Database Schema Design",
@@ -23,7 +23,7 @@ const sampleTasks = [
     priority: "medium",
     progress: 0,
     assignedTo: "student2",
-    dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000) // 10 days from now
+    dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
   },
   {
     title: "Frontend Component Library",
@@ -33,7 +33,7 @@ const sampleTasks = [
     priority: "high",
     progress: 100,
     assignedTo: "student1",
-    dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) // 2 days ago
+    dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
   },
   {
     title: "Testing Strategy Implementation",
@@ -43,7 +43,7 @@ const sampleTasks = [
     priority: "medium",
     progress: 30,
     assignedTo: "student3",
-    dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000) // 5 days from now
+    dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
   },
   {
     title: "Security Audit",
@@ -53,7 +53,7 @@ const sampleTasks = [
     priority: "high",
     progress: 0,
     assignedTo: "student2",
-    dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 days from now
+    dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
   }
 ];
 
@@ -87,12 +87,10 @@ async function seedDatabase() {
     await mongoose.connect(mongoURI);
     console.log('Connected to MongoDB');
 
-    // Clear existing data
     await Task.deleteMany({});
     await User.deleteMany({});
     console.log('Cleared existing data');
 
-    // Create users
     const users: any[] = [];
     for (const userData of sampleUsers) {
       const hashedPassword = await bcrypt.hash(userData.password, 10);
@@ -105,19 +103,22 @@ async function seedDatabase() {
       console.log(`Created user: ${user.name}`);
     }
 
-    // Map sample tasks to real user IDs
     const student1 = users.find(u => u.email === 'john@example.com');
     const student2 = users.find(u => u.email === 'mike@example.com');
-    const student3 = users.find(u => u.email === 'jane@example.com'); // Using mentor as student3 for demo
+    const student3 = users.find(u => u.email === 'jane@example.com'); // using mentor for demo
+
+    const student1Id = (student1 as any)?._id?.toString?.() ?? '';
+    const student2Id = (student2 as any)?._id?.toString?.() ?? '';
+    const student3Id = (student3 as any)?._id?.toString?.() ?? '';
 
     const tasksWithUserIds = sampleTasks.map(task => ({
       ...task,
       assignedTo:
         task.assignedTo === 'student1'
-          ? (student1 as any)._id.toString()
+          ? student1Id
           : task.assignedTo === 'student2'
-          ? (student2 as any)._id.toString()
-          : (student3 as any)._id.toString()
+          ? student2Id
+          : student3Id
     }));
 
     for (const taskData of tasksWithUserIds) {
@@ -131,9 +132,8 @@ async function seedDatabase() {
     console.log('Student: john@example.com / password123');
     console.log('Mentor: jane@example.com / password123');
     console.log('Student: mike@example.com / password123');
-
   } catch (error: any) {
-    console.error('Seeding error:', error.message || error);
+    console.error('Seeding error:', error?.message || error);
   } finally {
     await mongoose.disconnect();
     process.exit(0);
@@ -141,4 +141,3 @@ async function seedDatabase() {
 }
 
 seedDatabase();
-
