@@ -25,6 +25,11 @@ app.use(morgan('dev'));
 const uploadDir = process.env.UPLOAD_DIR || 'uploads';
 app.use('/uploads', express.static(path.join(process.cwd(), 'server', uploadDir)));
 
+// 👇 Root route
+app.get('/', (_, res) => {
+  res.send('🚀 Task Manager API is running successfully!');
+});
+
 app.get('/health', (_, res) => res.json({ ok: true }));
 app.use('/auth', authRouter);
 app.use('/tasks', tasksRouter);
@@ -33,5 +38,3 @@ const port = Number(process.env.PORT || 4000);
 app.listen(port, () => {
   console.log(`API listening on http://localhost:${port}`);
 });
-
-
