@@ -7,7 +7,10 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-// simple local uploads
+// helper: always get a safe string id from req.user
+const getUserId = (req: AuthRequest) =>
+  ((req as any).user?._id?.toString?.() ?? '');
+
 const uploadDir = path.join(process.cwd(), 'server', process.env.UPLOAD_DIR || 'uploads');
 fs.mkdirSync(uploadDir, { recursive: true });
 const storage = multer.diskStorage({
@@ -23,9 +26,9 @@ router.get('/', async (req, res) => {
   try {
     const q = String(req.query.q || '').trim();
     const status = String(req.query.status || '');
-    
-    let query: any = {};
-    
+
+    const query: any = {};
+
     if (q) {
       query.$or = [
         { title: { $regex: q, $options: 'i' } },
@@ -33,15 +36,14 @@ router.get('/', async (req, res) => {
         { assignedTo: { $regex: q, $options: 'i' } }
       ];
     }
-    
-    if (status) {
-      query.status = status;
-    }
-    
+
+    if (status) query.status = status;
+
     const tasks = await Task.find(query).sort({ createdAt: -1 });
     res.json(tasks);
-  } catch (error) {
-    console.error('Get tasks error:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Get tasks error:', err.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -51,8 +53,9 @@ router.get('/:id', async (req, res) => {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ error: 'Task not found' });
     res.json(task);
-  } catch (error) {
-    console.error('Get task error:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Get task error:', err.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -61,22 +64,21 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ error: 'Task not found' });
-    
-    // Students can only update their own assigned tasks
-    if (req.user!.role === 'student' && task.assignedTo !== req.user!._id.toString()) {
+
+    const userId = getUserId(req);
+    const assignedToId = (task.assignedTo as any)?.toString?.() ?? String(task.assignedTo);
+
+    if (req.user?.role === 'student' && assignedToId !== userId) {
       return res.status(403).json({ error: 'Can only update your own tasks' });
     }
-    
+
     const updates = req.body || {};
-    const updatedTask = await Task.findByIdAndUpdate(
-      req.params.id, 
-      updates, 
-      { new: true }
-    );
-    
+    const updatedTask = await Task.findByIdAndUpdate(req.params.id, updates, { new: true });
+
     res.json(updatedTask);
-  } catch (error) {
-    console.error('Update task error:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Update task error:', err.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -85,35 +87,35 @@ router.post('/:id/submissions', requireAuth, upload.array('files', 10), async (r
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ error: 'Task not found' });
-    
-    // Only assigned student can submit
-    if (task.assignedTo !== req.user!._id.toString()) {
+
+    const userId = getUserId(req);
+    const assignedToId = (task.assignedTo as any)?.toString?.() ?? String(task.assignedTo);
+
+    if (assignedToId !== userId) {
       return res.status(403).json({ error: 'Can only submit your own tasks' });
     }
-    
+
     const files = (req.files as Express.Multer.File[] | undefined) || [];
-    
-    // Mark completed on any submission
+
     const updatedTask = await Task.findByIdAndUpdate(
       req.params.id,
       { progress: 100, status: 'completed' },
       { new: true }
     );
-    
-    res.json({ 
-      ok: true, 
-      files: files.map(f => ({ 
-        filename: f.filename, 
-        url: `/uploads/${f.filename}` 
-      })), 
-      task: updatedTask 
+
+    res.json({
+      ok: true,
+      files: files.map(f => ({
+        filename: f.filename,
+        url: `/uploads/${f.filename}`
+      })),
+      task: updatedTask
     });
-  } catch (error) {
-    console.error('Submission error:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Submission error:', err.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
 export default router;
-
-
