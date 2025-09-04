@@ -93,7 +93,7 @@ async function seedDatabase() {
     console.log('Cleared existing data');
 
     // Create users
-    const users = [];
+    const users: any[] = [];
     for (const userData of sampleUsers) {
       const hashedPassword = await bcrypt.hash(userData.password, 10);
       const user = new User({
@@ -105,16 +105,19 @@ async function seedDatabase() {
       console.log(`Created user: ${user.name}`);
     }
 
-    // Create tasks with real user IDs
+    // Map sample tasks to real user IDs
     const student1 = users.find(u => u.email === 'john@example.com');
     const student2 = users.find(u => u.email === 'mike@example.com');
     const student3 = users.find(u => u.email === 'jane@example.com'); // Using mentor as student3 for demo
 
     const tasksWithUserIds = sampleTasks.map(task => ({
       ...task,
-      assignedTo: task.assignedTo === 'student1' ? student1!._id.toString() :
-                  task.assignedTo === 'student2' ? student2!._id.toString() :
-                  student3!._id.toString()
+      assignedTo:
+        task.assignedTo === 'student1'
+          ? (student1 as any)._id.toString()
+          : task.assignedTo === 'student2'
+          ? (student2 as any)._id.toString()
+          : (student3 as any)._id.toString()
     }));
 
     for (const taskData of tasksWithUserIds) {
@@ -129,8 +132,8 @@ async function seedDatabase() {
     console.log('Mentor: jane@example.com / password123');
     console.log('Student: mike@example.com / password123');
 
-  } catch (error) {
-    console.error('Seeding error:', error);
+  } catch (error: any) {
+    console.error('Seeding error:', error.message || error);
   } finally {
     await mongoose.disconnect();
     process.exit(0);
@@ -138,3 +141,4 @@ async function seedDatabase() {
 }
 
 seedDatabase();
+
